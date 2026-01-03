@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Plus, Download, TicketIcon } from 'lucide-react';
-import { useTickets } from '@/context/TicketContext';
 import { Ticket, TicketFormData, TicketStatus, TicketPriority } from '@/types/ticket';
 import { TopNav } from '@/components/layout/TopNav';
 import { TicketCard } from '@/components/TicketCard';
@@ -10,69 +9,117 @@ import { SearchFilter } from '@/components/SearchFilter';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useTicketsQuery,
+  useCreateTicket,
+  useUpdateTicket,
+  useDeleteTicket,
+  useUpdateTicketStatus,
+} from '@/hooks/useTicketsApi';
 
 interface OutletContext {
   onCreateTicket: () => void;
 }
 
 export default function Tickets() {
-  const { tickets, addTicket, updateTicket, deleteTicket, updateStatus } = useTickets();
   const { onCreateTicket } = useOutletContext<OutletContext>();
   const { toast } = useToast();
-
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
-  const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
 
-  const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => {
-      const matchesSearch =
-        ticket.subject.toLowerCase().includes(search.toLowerCase()) ||
-        ticket.description.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
-      return matchesSearch && matchesStatus && matchesPriority;
+  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // 🔥 Server-driven tickets
+  const { data: tickets = [], isLoading } = useTicketsQuery({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+    search: search || undefined,
+  });
+
+  const createTicketMutation = useCreateTicket();
+  const updateTicketMutation = useUpdateTicket();
+  const deleteTicketMutation = useDeleteTicket();
+  const statusMutation = useUpdateTicketStatus();
+
+  const filteredTickets = useMemo(() => tickets, [tickets]);
+  const hasActiveFilters =
+    search !== '' || statusFilter !== 'all' || priorityFilter !== 'all';
+
+  // ➕ Create Ticket
+  const handleCreateTicket = (data: TicketFormData) => {
+    createTicketMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: 'Ticket created',
+          description: 'A new ticket has been successfully created.',
+        });
+        setIsFormOpen(false);
+      },
+      onError: (error: any) => {
+        toast({
+          title: 'Error',
+          description: error?.message || 'Failed to create ticket.',
+        });
+      },
     });
-  }, [tickets, search, statusFilter, priorityFilter]);
+  };
 
-  const hasActiveFilters = search !== '' || statusFilter !== 'all' || priorityFilter !== 'all';
-
+  // ✏️ Edit Ticket
   const handleEditTicket = (data: TicketFormData) => {
-    if (editingTicket) {
-      updateTicket(editingTicket.id, data);
-      setEditingTicket(null);
-      toast({
-        title: 'Ticket updated',
-        description: 'Your changes have been saved.',
-      });
-    }
+    if (!editingTicket) return;
+
+    updateTicketMutation.mutate(
+      { id: editingTicket.id, data },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Ticket updated',
+            description: 'Your changes have been saved.',
+          });
+          setEditingTicket(null);
+          setIsFormOpen(false);
+        },
+      }
+    );
   };
 
+  // 🗑 Delete Ticket
   const handleDeleteTicket = () => {
-    if (deletingTicket) {
-      deleteTicket(deletingTicket.id);
-      setDeletingTicket(null);
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: 'Ticket deleted',
-        description: 'The ticket has been permanently removed.',
-      });
-    }
-  };
+    if (!deletingTicket) return;
 
-  const handleStatusChange = (id: string, status: TicketStatus) => {
-    updateStatus(id, status);
-    toast({
-      title: 'Status updated',
-      description: `Ticket status changed to ${status.replace('-', ' ')}.`,
+    deleteTicketMutation.mutate(deletingTicket.id, {
+      onSuccess: () => {
+        toast({
+          title: 'Ticket deleted',
+          description: 'The ticket has been permanently removed.',
+        });
+        setDeletingTicket(null);
+        setIsDeleteDialogOpen(false);
+      },
     });
   };
 
+  // 🔄 Status Change
+  const handleStatusChange = (id: string, status: TicketStatus) => {
+    statusMutation.mutate(
+      { id, status },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Status updated',
+            description: `Ticket status changed to ${status}.`,
+          });
+        },
+      }
+    );
+  };
+
+  // CSV Export
   const handleExport = () => {
     const headers = ['Subject', 'Description', 'Category', 'Priority', 'Status', 'Created At'];
     const csvContent = [
@@ -84,7 +131,7 @@ export default function Tickets() {
           t.category,
           t.priority,
           t.status,
-          t.createdAt.toISOString(),
+          new Date(t.createdAt).toISOString(),
         ].join(',')
       ),
     ].join('\n');
@@ -107,17 +154,15 @@ export default function Tickets() {
     setPriorityFilter('all');
   };
 
+  if (isLoading) {
+    return <div className="p-10 text-muted-foreground">Loading tickets…</div>;
+  }
+
   return (
     <>
-      <TopNav
-        title="Tickets"
-        search={search}
-        onSearchChange={setSearch}
-        onCreateTicket={onCreateTicket}
-      />
+      <TopNav title="Tickets" search={search} onSearchChange={setSearch} onCreateTicket={() => setIsFormOpen(true)} />
 
       <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
-        {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <SearchFilter
             search={search}
@@ -135,18 +180,13 @@ export default function Tickets() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button
-              onClick={onCreateTicket}
-              className="gradient-primary border-0 text-primary-foreground"
-              size="sm"
-            >
+            <Button onClick={() => setIsFormOpen(true)} className="gradient-primary border-0 text-primary-foreground" size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Ticket
             </Button>
           </div>
         </div>
 
-        {/* Ticket List */}
         {filteredTickets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
@@ -157,7 +197,7 @@ export default function Tickets() {
               {hasActiveFilters ? 'Try adjusting your filters' : 'Create a new ticket to get started'}
             </p>
             {!hasActiveFilters && (
-              <Button onClick={onCreateTicket} className="mt-4 gradient-primary border-0 text-primary-foreground">
+              <Button onClick={() => setIsFormOpen(true)} className="mt-4 gradient-primary border-0 text-primary-foreground">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Ticket
               </Button>
@@ -184,19 +224,19 @@ export default function Tickets() {
         )}
       </main>
 
-      {/* Edit Form */}
       <TicketForm
         open={isFormOpen}
         onOpenChange={(open) => {
           setIsFormOpen(open);
-          if (!open) setEditingTicket(null);
+          if (!open) {
+            setEditingTicket(null);
+          }
         }}
-        onSubmit={handleEditTicket}
+        onSubmit={editingTicket ? handleEditTicket : handleCreateTicket}
         initialData={editingTicket}
-        mode="edit"
+        mode={editingTicket ? 'edit' : 'create'}
       />
 
-      {/* Delete Confirmation */}
       <DeleteConfirmDialog
         ticket={deletingTicket}
         open={isDeleteDialogOpen}

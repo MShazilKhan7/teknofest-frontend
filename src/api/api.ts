@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getDefaultStore } from 'jotai';
 import { authAtom, INITIAL_AUTHENTICATION_VALUE } from '../hooks/useAuth.tsx';
-import { toast } from '../hooks/useToast';
+import { toast } from '../hooks/use-toast.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -79,53 +79,53 @@ api.interceptors.response.use(
 /**
  * API Auth Methods (matching backend routes)
  */
-export const AuthAPI = {
-  async signup(data: { name: string; email: string; password: string }) {
-    try {
-      const res = await api.post('/auth/signup', data);
-      if (res.data.success && res.data.data) {
-        await handleAuthSuccess(res.data.data);
-      }
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async login(data: { email: string; password: string }) {
-    try {
-      const res = await api.post('/auth/login', data);
-      if (res.data.success && res.data.data) {
-        await handleAuthSuccess(res.data.data);
-      }
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async forgotPassword(email: string) {
-    try {
-      const res = await api.post('/auth/forgot-password', { email });
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async resetPassword(token: string, password: string) {
-    try {
-      const res = await api.post(`/auth/reset-password/${token}`, { password });
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async getMe() {
-    try {
-      const res = await api.get('/auth/me');
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-};
+// export const AuthAPI = {
+//   async signup(data: { name: string; email: string; password: string }) {
+//     try {
+//       const res = await api.post('/auth/signup', data);
+//       if (res.data.success && res.data.data) {
+//         await handleAuthSuccess(res.data.data);
+//       }
+//       return res.data;
+//     } catch (err: unknown) {
+//       throw err;
+//     }
+//   },
+//   async login(data: { email: string; password: string }) {
+//     try {
+//       const res = await api.post('/auth/login', data);
+//       if (res.data.success && res.data.data) {
+//         await handleAuthSuccess(res.data.data);
+//       }
+//       return res.data;
+//     } catch (err: any) {
+//       throw err;
+//     }
+//   },
+//   async forgotPassword(email: string) {
+//     try {
+//       const res = await api.post('/auth/forgot-password', { email });
+//       return res.data;
+//     } catch (err: any) {
+//       throw err;
+//     }
+//   },
+//   async resetPassword(token: string, password: string) {
+//     try {
+//       const res = await api.post(`/auth/reset-password/${token}`, { password });
+//       return res.data;
+//     } catch (err: any) {
+//       throw err;
+//     }
+//   },
+//   async getMe() {
+//     try {
+//       const res = await api.get('/auth/me');
+//       return res.data;
+//     } catch (err: any) {
+//       throw err;
+//     }
+//   },
+// };
 
 export default api;

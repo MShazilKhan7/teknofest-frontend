@@ -1,23 +1,35 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Circle, Clock, CheckCircle2, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useTickets } from '@/context/TicketContext';
+import { Ticket, TicketStatus, TicketFormData } from '@/types/tickets';
 import { TopNav } from '@/components/layout/TopNav';
 import { StatCard } from '@/components/StatCard';
 import { TicketCard } from '@/components/TicketCard';
+import { TicketForm } from '@/components/TicketForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TicketStatus } from '@/types/ticket';
 import { useToast } from '@/hooks/use-toast';
+
+import { useTicketsQuery, useCreateTicket, useUpdateTicketStatus } from '@/hooks/useTicketsApi';
 
 interface OutletContext {
   onCreateTicket: () => void;
 }
 
 export default function DashboardHome() {
-  const { tickets, updateStatus } = useTickets();
   const { onCreateTicket } = useOutletContext<OutletContext>();
   const { toast } = useToast();
 
+  // State for ticket form
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Fetch tickets
+  const { data: tickets = [], isLoading } = useTicketsQuery();
+
+  // Mutations
+  const createTicketMutation = useCreateTicket();
+  const statusMutation = useUpdateTicketStatus();
+
+  // Stats
   const stats = useMemo(
     () => ({
       open: tickets.filter((t) => t.status === 'open').length,
@@ -27,6 +39,7 @@ export default function DashboardHome() {
     [tickets]
   );
 
+  // Overdue tickets
   const overdueTickets = useMemo(() => {
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -35,45 +48,65 @@ export default function DashboardHome() {
     );
   }, [tickets]);
 
+  // Recent tickets
   const recentTickets = useMemo(() => {
     return [...tickets]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 6);
   }, [tickets]);
 
-  const handleStatusChange = (id: string, status: TicketStatus) => {
-    updateStatus(id, status);
-    toast({
-      title: 'Status updated',
-      description: `Ticket status changed to ${status.replace('-', ' ')}.`,
+  // Handle ticket creation
+  const handleCreateTicket = (data: TicketFormData) => {
+    createTicketMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: 'Ticket created',
+          description: 'A new ticket has been successfully created.',
+        });
+        setIsFormOpen(false);
+      },
+      onError: (error: any) => {
+        toast({
+          title: 'Error',
+          description: error?.message || 'Failed to create ticket.',
+        });
+      },
     });
   };
 
+  // Handle status change
+  const handleStatusChange = (id: string, status: TicketStatus) => {
+    statusMutation.mutate(
+      { id, status },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Status updated',
+            description: `Ticket status changed to ${status.replace('-', ' ')}.`,
+          });
+        },
+      }
+    );
+  };
+
+  if (isLoading) {
+    return <div className="p-10 text-muted-foreground">Loading tickets…</div>;
+  }
+
   return (
     <>
-      <TopNav title="Dashboard" showSearch={false} onCreateTicket={onCreateTicket} />
+      <TopNav
+        title="Dashboard"
+        showSearch={false}
+        onCreateTicket={() => setIsFormOpen(true)}
+      />
 
       <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            title="Open Tickets"
-            count={stats.open}
-            icon={<Circle className="h-6 w-6" />}
-            variant="open"
-          />
-          <StatCard
-            title="In Progress"
-            count={stats.inProgress}
-            icon={<Clock className="h-6 w-6" />}
-            variant="progress"
-          />
-          <StatCard
-            title="Resolved"
-            count={stats.resolved}
-            icon={<CheckCircle2 className="h-6 w-6" />}
-            variant="resolved"
-          />
+          <StatCard title="Open Tickets" count={stats.open} icon={<Circle className="h-6 w-6" />} variant="open" />
+          <StatCard title="In Progress" count={stats.inProgress} icon={<Clock className="h-6 w-6" />} variant="progress" />
+          <StatCard title="Resolved" count={stats.resolved} icon={<CheckCircle2 className="h-6 w-6" />} variant="resolved" />
         </div>
 
         {/* Overdue Alerts */}
@@ -131,6 +164,14 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Ticket Creation Form */}
+      <TicketForm
+        open={isFormOpen}
+        onOpenChange={(open) => setIsFormOpen(open)}
+        onSubmit={handleCreateTicket}
+        mode="create"
+      />
     </>
   );
 }
