@@ -1,43 +1,56 @@
 import axios from 'axios';
 import { getDefaultStore } from 'jotai';
+import {AxiosRequestConfig} from 'axios';
 import { authAtom, INITIAL_AUTHENTICATION_VALUE } from '../hooks/useAuth.tsx';
-import { toast } from '../hooks/useToast';
+import { toast } from '@/hooks/use-toast.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const PUBLIC_ROUTES = [
+  '/auth/login/',
+  '/auth/register/',
+  '/auth/reset-password/',
+  '/auth/refresh-token/',
+];
 
 const api = axios.create({
   baseURL: API_URL,
 });
 
+const isPublicRoute = (url?: string) => {
+  if (!url) return false;
+  return PUBLIC_ROUTES.some((route) => url.includes(route));
+};
+
 // Helper to get current access token from store
-async function getAccessToken() {
+function getAccessToken(): string | undefined {
   const store = getDefaultStore();
-  return (await store.get(authAtom))?.accessToken;
+  return store.get(authAtom)?.token;
 }
 
 // Helper to set auth state after login/signup
 async function handleAuthSuccess(authPayload: any) {
   const store = getDefaultStore();
   if (authPayload && authPayload.token) {
-    store.set(authAtom, {
-      isAuthenticated: true,
-      user: authPayload.user,
-      accessToken: authPayload.token,
-      refreshToken: authPayload.refreshToken,
-    });
+    store.set(authAtom, authPayload);
   } else {
     store.set(authAtom, INITIAL_AUTHENTICATION_VALUE);
   }
 }
 
-// Request interceptor: attach access token
 api.interceptors.request.use(
-  async (config) => {
-    const token = await getAccessToken();
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+  (config: any) => {
+    if (!isPublicRoute(config.url)) {
+      const token = getAccessToken();
+
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
     }
+
     return config;
   },
   (error) => Promise.reject(error),
@@ -75,57 +88,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
-
-/**
- * API Auth Methods (matching backend routes)
- */
-export const AuthAPI = {
-  async signup(data: { name: string; email: string; password: string }) {
-    try {
-      const res = await api.post('/auth/signup', data);
-      if (res.data.success && res.data.data) {
-        await handleAuthSuccess(res.data.data);
-      }
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async login(data: { email: string; password: string }) {
-    try {
-      const res = await api.post('/auth/login', data);
-      if (res.data.success && res.data.data) {
-        await handleAuthSuccess(res.data.data);
-      }
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async forgotPassword(email: string) {
-    try {
-      const res = await api.post('/auth/forgot-password', { email });
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async resetPassword(token: string, password: string) {
-    try {
-      const res = await api.post(`/auth/reset-password/${token}`, { password });
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-  async getMe() {
-    try {
-      const res = await api.get('/auth/me');
-      return res.data;
-    } catch (err: any) {
-      throw err;
-    }
-  },
-};
 
 export default api;

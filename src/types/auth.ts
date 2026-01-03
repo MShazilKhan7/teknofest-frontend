@@ -31,12 +31,24 @@ export interface SignInRequest {
  * Represents the payload for user registration.
  * Includes password confirmation for client-side validation.
  */
-export interface SignUpRequest {
-  name: string;
-  email: string;
-  password: string;
-  confirm_password: string;
-}
+export const signUpSchema = z
+  .object({
+    name: z.string().min(2, 'Full name must be at least 2 characters'),
+    email: z.string().email('Please enter a valid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Passwords don't match",
+    path: ['confirm_password'],
+  });
+
+export type SignUpRequest = z.infer<typeof signUpSchema>;
 
 /**
  * Authentication
@@ -45,7 +57,7 @@ export interface SignUpRequest {
  * Includes both tokens and the authenticated expert profile.
  */
 export interface Authentication {
-  accessToken: string;
+  token: string;
   refreshToken: string;
   user: User | null;
 }

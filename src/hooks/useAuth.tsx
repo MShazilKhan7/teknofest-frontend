@@ -1,11 +1,24 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
-
 import { useNavigate } from 'react-router-dom';
-import { AuthAPI } from '../api/auth';
-import { Authentication, SignInRequest } from '@/types/auth';
+
+import { AuthAPI } from '@/api/auth';
+import type { Authentication, SignInRequest, SignUpRequest } from '@/types/auth';
 import { toast } from './use-toast';
+
+export const INITIAL_AUTHENTICATION_VALUE: Authentication = {
+  token: '',
+  refreshToken: '',
+  user: null,
+};
+
+export const authAtom = atomWithStorage<Authentication>(
+  'authentication',
+  INITIAL_AUTHENTICATION_VALUE,
+  undefined,
+  { getOnInit: true }
+);
 
 export const useAuth = () => {
   const navigate = useNavigate();
@@ -17,31 +30,47 @@ export const useAuth = () => {
     queryClient.clear();
   };
 
-  const { mutate: signIn, isPending: isSignInPending } = useMutation<
+  const signInMutation = useMutation<
     Authentication,
-    Error,
+    any,
     SignInRequest
   >({
     mutationFn: AuthAPI.login,
-    onSuccess: (data: Authentication) => {
-      setAuthentication({ ...data });
+    onSuccess: (data) => {
+      setAuthentication(data);
       navigate('/');
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.data.message,
+        title: 'Login failed',
+        description: error?.response?.data?.message ?? 'Invalid credentials',
+        variant: 'destructive',
       });
     },
   });
 
-  const { mutate: signUp, isPending: isSignUpPending } = useMutation({
-    mutationFn: AuthAPI.register,
-    onSuccess: (data: Authentication) => {
-      setAuthentication({ ...data });
-      navigate('/');
-    },
-  });
+  const signUpMutation = useMutation<
+  Authentication,
+  any,
+  SignUpRequest
+>({
+  mutationFn: AuthAPI.register,
+  onSuccess: (data) => {
+    setAuthentication(data);
+    navigate('/');
+  },
+  onError: (error) => {
+    toast({
+      title: 'Signup failed',
+      description:
+        error?.response?.data?.message ??
+        error?.message ??
+        'Unable to create account',
+      variant: 'destructive',
+    });
+  },
+});
+
 
   const signout = () => {
     reset();
@@ -51,22 +80,14 @@ export const useAuth = () => {
   return {
     authentication,
     user: authentication.user,
-    isLoggedIn: !!authentication.accessToken,
+    isLoggedIn: Boolean(authentication.token),
 
-    signIn,
-    signUp,
+    signIn: signInMutation.mutate,
+    signUp: signUpMutation.mutate,
+
+    isSignInPending: signInMutation.isPending,
+    isSignUpPending: signUpMutation.isPending,
+
     signout,
-    isSignInPending,
-    isSignUpPending,
   };
 };
-
-export const INITIAL_AUTHENTICATION_VALUE: Authentication = {
-  accessToken: '',
-  refreshToken: '',
-  user: null,
-};
-
-export const authAtom = atomWithStorage('authentication', INITIAL_AUTHENTICATION_VALUE, undefined, {
-  getOnInit: true,
-});
