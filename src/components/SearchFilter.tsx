@@ -19,6 +19,7 @@ interface SearchFilterProps {
   onPriorityFilterChange: (value: TicketPriority | 'all') => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
+  hideSearch?: boolean;
 }
 
 export function SearchFilter({
@@ -30,18 +31,21 @@ export function SearchFilter({
   onPriorityFilterChange,
   onClearFilters,
   hasActiveFilters,
+  hideSearch = false,
 }: SearchFilterProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search tickets..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-card border-border focus:ring-2 focus:ring-primary/20"
-        />
-      </div>
+      {!hideSearch && (
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tickets..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-10 bg-card border-border focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+      )}
 
       <div className="flex gap-3">
         <Select
