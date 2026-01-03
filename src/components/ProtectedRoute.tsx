@@ -1,15 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoggedIn, isSignInPending, isSignUpPending } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isSignInPending || isSignUpPending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -20,7 +20,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isLoggedIn) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

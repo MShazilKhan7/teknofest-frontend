@@ -1,43 +1,56 @@
 import axios from 'axios';
 import { getDefaultStore } from 'jotai';
+import {AxiosRequestConfig} from 'axios';
 import { authAtom, INITIAL_AUTHENTICATION_VALUE } from '../hooks/useAuth.tsx';
-import { toast } from '../hooks/use-toast.ts';
+import { toast } from '@/hooks/use-toast.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const PUBLIC_ROUTES = [
+  '/auth/login/',
+  '/auth/register/',
+  '/auth/reset-password/',
+  '/auth/refresh-token/',
+];
 
 const api = axios.create({
   baseURL: API_URL,
 });
 
+const isPublicRoute = (url?: string) => {
+  if (!url) return false;
+  return PUBLIC_ROUTES.some((route) => url.includes(route));
+};
+
 // Helper to get current access token from store
-async function getAccessToken() {
+function getAccessToken(): string | undefined {
   const store = getDefaultStore();
-  return (await store.get(authAtom))?.accessToken;
+  return store.get(authAtom)?.token;
 }
 
 // Helper to set auth state after login/signup
 async function handleAuthSuccess(authPayload: any) {
   const store = getDefaultStore();
   if (authPayload && authPayload.token) {
-    store.set(authAtom, {
-      isAuthenticated: true,
-      user: authPayload.user,
-      accessToken: authPayload.token,
-      refreshToken: authPayload.refreshToken,
-    });
+    store.set(authAtom, authPayload);
   } else {
     store.set(authAtom, INITIAL_AUTHENTICATION_VALUE);
   }
 }
 
-// Request interceptor: attach access token
 api.interceptors.request.use(
-  async (config) => {
-    const token = await getAccessToken();
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+  (config: any) => {
+    if (!isPublicRoute(config.url)) {
+      const token = getAccessToken();
+
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
     }
+
     return config;
   },
   (error) => Promise.reject(error),

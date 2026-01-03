@@ -8,7 +8,7 @@ export const AuthAPI = {
     api.post<Authentication>('/auth/login/', data).then((res) => res.data),
 
   register: async (data: SignUpRequest) =>
-    api.post<Authentication>('/auth/register/', data).then((res) => res.data),
+    api.post<Authentication>('/auth/signup/', data).then((res) => res.data),
 
   refreshToken: async (): Promise<{ access: string }> =>
     api.post<{ access: string }>('/auth/refresh-token/').then((res) => res.data),
