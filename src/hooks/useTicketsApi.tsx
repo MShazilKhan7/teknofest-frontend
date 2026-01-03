@@ -7,7 +7,7 @@ export const TICKET_STATS_KEY = ['ticket-stats'];
 
 export function useTicketsQuery(filters?: any) {
   return useQuery({
-    queryKey: [...TICKETS_KEY, filters],
+    queryKey: [...TICKETS_KEY],
     queryFn: () => TicketAPI.getAll(filters),
     select: (res) => res.data,
   });

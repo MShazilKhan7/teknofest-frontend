@@ -16,24 +16,24 @@ interface StatusBadgeProps {
 }
 
 const statusConfig = {
-  open: {
-    label: 'Open',
+  'open': {
+    label: 'open',
     className: 'bg-status-open-bg text-status-open',
     icon: Circle,
   },
-  'in-progress': {
+  'in progress': {
     label: 'In Progress',
     className: 'bg-status-progress-bg text-status-progress',
     icon: Clock,
   },
-  resolved: {
+  'resolved': {
     label: 'Resolved',
     className: 'bg-status-resolved-bg text-status-resolved',
     icon: CheckCircle2,
   },
 };
 
-const allStatuses: TicketStatus[] = ['open', 'in-progress', 'resolved'];
+const allStatuses: TicketStatus[] = ['open', 'in progress', 'resolved'];
 
 export function StatusBadge({
   status,
@@ -42,19 +42,18 @@ export function StatusBadge({
   className,
 }: StatusBadgeProps) {
   const config = statusConfig[status];
-  const Icon = config.icon;
 
   const badge = (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200',
-        config.className,
+        // config.className,
         interactive && 'cursor-pointer hover:opacity-80',
         className
       )}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {config.label}
+      {/* <Icon className="h-3.5 w-3.5" /> */}
+      {config?.label}
       {interactive && <ChevronDown className="h-3 w-3 ml-0.5" />}
     </span>
   );
@@ -80,7 +79,7 @@ export function StatusBadge({
               )}
             >
               <SIcon className="h-4 w-4" />
-              {sConfig.label}
+              {sConfig?.label}
             </DropdownMenuItem>
           );
         })}

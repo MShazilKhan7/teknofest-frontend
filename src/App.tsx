@@ -13,9 +13,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import DashboardHome from "./pages/DashboardHome";
-import Tickets from "./pages/Tickets";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Tickets from "./pages/Tickets";
+import { Dashboard } from "./components/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -55,8 +56,8 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 >
-                  <Route path="/dashboard" element={<DashboardHome />} />
-                  <Route path="/tickets" element={<Tickets />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/tickets" element={<Tickets  />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Search, Menu } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -16,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NavLink } from '@/components/NavLink';
 import { LayoutDashboard, Ticket, Settings, LogOut, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TopNavProps {
   title: string;
@@ -32,7 +32,7 @@ const navItems = [
 ];
 
 export function TopNav({ title, search, onSearchChange, showSearch = true, onCreateTicket }: TopNavProps) {
-  const { user, logout } = useAuth();
+  const { user, signout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getInitials = (name: string) => {
@@ -92,7 +92,7 @@ export function TopNav({ title, search, onSearchChange, showSearch = true, onCre
             <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border">
               <button
                 onClick={() => {
-                  logout();
+                  signout();
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200 text-muted-foreground hover:text-destructive hover:bg-destructive/10"

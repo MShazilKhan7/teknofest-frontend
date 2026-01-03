@@ -36,7 +36,7 @@ export function PriorityBadge({ priority, className }: PriorityBadgeProps) {
       )}
     >
       <span className={cn('h-1.5 w-1.5 rounded-full', config.dot)} />
-      {config.label}
+      {config?.label}
     </span>
   );
 }
