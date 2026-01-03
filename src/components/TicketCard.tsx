@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils';
 
 interface TicketCardProps {
   ticket: Ticket;
-  onEdit: (ticket: Ticket) => void;
-  onDelete: (ticket: Ticket) => void;
+  onEdit?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
   onStatusChange: (id: string, status: Ticket['status']) => void;
+  compact?: boolean;
 }
 
 const categoryLabels = {
@@ -29,6 +30,7 @@ export function TicketCard({
   onEdit,
   onDelete,
   onStatusChange,
+  compact = false,
 }: TicketCardProps) {
   const isOverdue =
     ticket.status === 'open' &&
@@ -85,34 +87,36 @@ export function TicketCard({
           <span className="text-xs text-muted-foreground">
             Created {format(ticket.createdAt, 'MMM d, yyyy • h:mm a')}
           </span>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-accent"
-                  onClick={() => onEdit(ticket)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Edit ticket</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => onDelete(ticket)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete ticket</TooltipContent>
-            </Tooltip>
-          </div>
+          {!compact && onEdit && onDelete && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 hover:bg-accent"
+                    onClick={() => onEdit(ticket)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit ticket</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(ticket)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete ticket</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </div>
       </div>
     </div>
